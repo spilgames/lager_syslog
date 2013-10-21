@@ -8,7 +8,7 @@
   Configure a Lager handler like the following:
 
 #+BEGIN_EXAMPLE
-  {lager_syslog_backend, [Identity, Facility, Level]}
+  {lager_syslog_backend, [{identity, Identity}, {facility, Facility}, {level, Level}]}
 #+END_EXAMPLE
 
   The Identity is the string to tag all messages with in syslog, usually the
@@ -22,20 +22,65 @@
   would look something like this:
 
 #+BEGIN_EXAMPLE
-  {lager_syslog_backend, ["riak", local7, info]}
+  {lager_syslog_backend, [{identity, "riak"}, {facility, local7}, {level, info}]}
 #+END_EXAMPLE
 
+* Option fields
+  * identity: mandatory, tag (string) for all messages in syslog
+  * facility: mandatory, syslog facility (atom)
+  * level: optional (default: see defaults.hrl), lager log level (atom)
+  * formatter: optional (default: see defaults.hrl), formatter module for log entries
+  * formatter_config: optional (default: see defaults.hrl), formatter config for log entries
+  * handler_id: optional (default: undefined), handler identifier as used by lager
+
+* Multiple lager_syslog backends
   If you want to log to multiple facilities at once, you can do something like
   the following:
 
 #+BEGIN_EXAMPLE
-  {{lager_syslog_backend, "daemon facility"}, ["riak1", daemon, info]},
-  {{lager_syslog_backend, ftp}, ["riak2", ftp, notice]},
+  {{lager_syslog_backend, "daemon facility"}, [{identity, "riak1"}, {facility, daemon}, {level, info}]},
+  {{lager_syslog_backend, ftp}, [{identity, "riak2"}, {facility, ftp}, {level, notice}]},
 #+END_EXAMPLE
 
   You MUST give each instance of the file backend its own identifier.
-
+  The identifier is passed to the configuration as {handler_id, Identifier}
   Refer to Lager's documentation for futher information on configuring handlers.
+
+* Tracing support
+  Traces are supported using the following syntax (for 1 syslog backend):
+#+BEGIN_EXAMPLE
+  {lager, [
+    {handlers, [
+      {lager_syslog_backend, ["foobar", local6, none]}
+    ]},
+    {traces, [
+      {{lager_syslog_backend,{"foobar",local6}}, [{application, my_application}], debug}
+    ]}
+  ]}
+#+END_EXAMPLE
+
+  For multiple syslog backends:
+#+BEGIN_EXAMPLE
+  {lager, [
+    {handlers, [
+      {{lager_syslog_backend, bar1}, [{identity, "foo1"}, {facility, local6}, {level, none}]},
+      {{lager_syslog_backend, bar2}, [{identity, "foo2"}, {facility, local6}, {level, none}]}
+    ]},
+    {traces, [
+      {{lager_syslog_backend,bar1}, [{application, my_application}], debug},
+      {{lager_syslog_backend,bar2}, [{application, my_other_application}], debug}
+    ]}
+  ]}
+#+END_EXAMPLE
+
+* Old style configuration
+  For backwards compatibility reasons, the following formats are still supported
+  (and at run-time converted to the proplist format):
+
+#+BEGIN_EXAMPLE
+  {lager_syslog_backend, [Identity, Facility, Level]}
+  {lager_syslog_backend, [Identity, Facility, Level, {Formatter, FormatterConfig}]}
+#+END_EXAMPLE
 
 * Troubleshooting
   There's not a lot to go wrong, but if you are not receiving messages, check
